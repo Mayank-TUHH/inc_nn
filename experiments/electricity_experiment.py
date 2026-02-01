@@ -53,7 +53,6 @@ def main():
     # Results
     # -------------------------
     print("\nIncremental training finished.")
-    print(f"Mean accuracy: {np.mean(accuracies):.4f}")
 
 
 if __name__ == "__main__":
