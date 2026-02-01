@@ -67,7 +67,7 @@ def run_incremental_training(
         y_init,
         epochs=initial_epochs,
         batch_size=32,
-        verbose=1,
+        verbose=0,
     )
 
     # --------------------------------------------------
@@ -126,7 +126,7 @@ def run_incremental_training(
             y_seq,
             epochs=incremental_epochs,
             batch_size=32,
-            verbose=1,
+            verbose=0,
         )
 
     # --------------------------------------------------
