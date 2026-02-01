@@ -13,11 +13,56 @@ def run_incremental_training(
     incremental_epochs=60,
 ):
     """
-    Incremental (prequential) training with detailed batch metrics.
+    Perform incremental (online) training using a prequential evaluation scheme.
+
+    The data stream is split into consecutive batches. The model is first
+    pre-trained on an initial batch. For each subsequent batch, the following
+    steps are performed:
+
+    1. The current batch is transformed into overlapping sequences using a
+       sliding window approach.
+    2. The model generates predictions for the batch (without prior training
+       on it).
+    3. Performance metrics (accuracy, precision, recall, and loss) are computed
+       in a prequential manner.
+    4. The model is incrementally updated by training on the same batch for a
+       fixed number of epochs.
+
+    This procedure allows the model to adapt continuously to non-stationary
+    data without explicit concept drift detection or memory replay.
+
+    Parameters
+    ----------
+    model : tf.keras.Model
+        Compiled LSTM / ILSTM model.
+    X : np.ndarray
+        Feature matrix of shape (n_samples, n_features).
+    y : np.ndarray
+        Label vector of shape (n_samples,).
+    batch_size : int
+        Number of samples per incoming batch.
+    sequence_length : int
+        Length of the sliding window used to create LSTM input sequences.
+    initial_epochs : int
+        Number of training epochs for the initial batch.
+    incremental_epochs : int
+        Number of training epochs for each subsequent batch.
+
+    Returns
+    -------
+    acc_list : list of float
+        Accuracy values for each incremental batch.
+    prec_list : list of float
+        Precision values for each incremental batch.
+    rec_list : list of float
+        Recall values for each incremental batch.
+    loss_list : list of float
+        Binary cross-entropy loss values for each incremental batch.
     """
 
     from src.preprocessing.sequence_builder import build_sequences
 
+    # Binary cross-entropy for manual loss computation
     bce = BinaryCrossentropy()
 
     n_samples = X.shape[0]
@@ -27,7 +72,9 @@ def run_incremental_training(
     rec_list = []
     loss_list = []
 
-    # Split into batches
+    # --------------------------------------------------
+    # Split data stream into batches
+    # --------------------------------------------------
     batches_X = [
         X[i : i + batch_size] for i in range(0, n_samples, batch_size)
     ]
@@ -35,7 +82,9 @@ def run_incremental_training(
         y[i : i + batch_size] for i in range(0, n_samples, batch_size)
     ]
 
-    # ---------- Initial batch (pre-training) ----------
+    # --------------------------------------------------
+    # Initial batch (pre-training)
+    # --------------------------------------------------
     X_init, y_init = build_sequences(
         batches_X[0],
         batches_y[0],
@@ -50,18 +99,21 @@ def run_incremental_training(
         verbose=1,
     )
 
-    # ---------- Incremental batches ----------
+    # --------------------------------------------------
+    # Incremental batches
+    # --------------------------------------------------
     for i in range(1, len(batches_X)):
         X_batch = batches_X[i]
         y_batch = batches_y[i]
 
+        # Build sequences for current batch
         X_seq, y_seq = build_sequences(
             X_batch,
             y_batch,
             sequence_length,
         )
 
-        # Predictions
+        # Prequential prediction
         y_prob = model.predict(X_seq, verbose=0).flatten()
         y_pred = (y_prob >= 0.5).astype(int)
 
@@ -76,6 +128,7 @@ def run_incremental_training(
         rec_list.append(rec)
         loss_list.append(loss)
 
+        # Batch-level logging (your requested format)
         print(
             f"Batch {i:02d} | "
             f"Acc: {acc:.4f} | "
@@ -84,7 +137,7 @@ def run_incremental_training(
             f"Loss: {loss:.4f}"
         )
 
-        # Incremental training
+        # Incremental training on current batch
         model.fit(
             X_seq,
             y_seq,
@@ -93,7 +146,9 @@ def run_incremental_training(
             verbose=1,
         )
 
-    # ---------- Final summary ----------
+    # --------------------------------------------------
+    # Final summary (mean ± std)
+    # --------------------------------------------------
     print("\nFinal Performance (mean ± std):")
     print(
         f"Accuracy : {np.mean(acc_list)*100:.2f} ± {np.std(acc_list)*100:.2f}"
