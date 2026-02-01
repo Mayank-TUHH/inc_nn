@@ -89,7 +89,7 @@ def run_incremental_training(
             y_seq,
             epochs=incremental_epochs,
             batch_size=32,
-            verbose=1,
+            verbose=0,
         )
 
         print(f"Batch {i} — Accuracy: {accuracy:.4f}")
