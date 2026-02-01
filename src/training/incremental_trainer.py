@@ -96,7 +96,7 @@ def run_incremental_training(
         y_init,
         epochs=initial_epochs,
         batch_size=32,
-        verbose=1,
+        verbose=0,
     )
 
     # --------------------------------------------------
@@ -158,6 +158,9 @@ def run_incremental_training(
     )
     print(
         f"Recall   : {np.mean(rec_list)*100:.2f} ± {np.std(rec_list)*100:.2f}"
+    )
+    print(
+        f"Loss     : {np.mean(loss_list):.4f} ± {np.std(loss_list):.4f}"
     )
 
     return acc_list, prec_list, rec_list, loss_list
