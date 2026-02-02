@@ -1,8 +1,6 @@
 import os
 import sys
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.preprocessing import MinMaxScaler
 
 # Ensure the project root is in path for Colab/CLI imports
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -14,37 +12,48 @@ from src.models.ilstm import build_ilstm
 from src.training.incremental_trainer import run_incremental_training
 
 def main():
+    # -------------------------
+    # Paths
+    # -------------------------
     DATA_PATH = os.path.join(project_root, "data", "electricity.csv")
 
-    # Hyperparameters from Paper
-    BATCH_SIZE = 336          
-    SEQUENCE_LENGTH = 48      
-    INITIAL_EPOCHS = 300      
-    INCREMENTAL_EPOCHS = 60   
+    # -------------------------
+    # Hyperparameter
+    # -------------------------
+    BATCH_SIZE = 336          # 1 week of data
+    SEQUENCE_LENGTH = 48      # 1 day of data (look-back)
+    INITIAL_EPOCHS = 300      # Training for the first 960 samples
+    INCREMENTAL_EPOCHS = 60   # Training for each subsequent week
 
-    # 1. Load Data
+    # -------------------------
+    # Load data
+    # -------------------------
+    if not os.path.exists(DATA_PATH):
+        print(f"Error: Data file not found at {DATA_PATH}")
+        return
+
     X, y = load_electricity_data(DATA_PATH)
-    
-    # 2. Normalize Features (Crucial for LSTM Gate Sensitivity)
-    # Fit ONLY on the initial training data to prevent data leakage
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    
-    # Pre-train portion
-    X[:960] = scaler.fit_transform(X[:960])
-    # The rest of the stream
-    X[960:] = scaler.transform(X[960:])
-    
-    print("✅ Data normalized to [0, 1] range.")
+    print(f"Loaded Electricity Data: {X.shape[0]} samples, {X.shape[1]} features.")
 
-    # 3. Build Model
+    # -------------------------
+    # Build Model (Stateful)
+    # -------------------------
     n_features = X.shape[1]
+    
+    # We pass batch_size to the builder to enable stateful memory
     model = build_ilstm(
         batch_size=BATCH_SIZE,
         sequence_length=SEQUENCE_LENGTH,
         n_features=n_features
     )
 
-    # 4. Run Incremental Training
+    model.summary()
+
+    # -------------------------
+    # Run Incremental Training
+    # -------------------------
+    print("\nStarting Incremental Training (Prequential Evaluation)...")
+    
     results = run_incremental_training(
         model=model,
         X=X,
@@ -55,24 +64,7 @@ def main():
         incremental_epochs=INCREMENTAL_EPOCHS,
     )
 
-    # 5. Final Visualization
-    plot_results(results)
-
-def plot_results(results):
-    batches = np.arange(1, len(results['acc']) + 1)
-    plt.figure(figsize=(12, 5))
-    
-    plt.subplot(1, 2, 1)
-    plt.plot(batches, [a*100 for a in results['acc']], color='green')
-    plt.title('Incremental Accuracy (%)')
-    plt.grid(True, alpha=0.3)
-    
-    plt.subplot(1, 2, 2)
-    plt.plot(batches, results['loss'], color='red')
-    plt.title('BCE Loss')
-    plt.grid(True, alpha=0.3)
-    
-    plt.show()
+    print("\nExperiment finished successfully.")
 
 if __name__ == "__main__":
     main()
