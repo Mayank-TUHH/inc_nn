@@ -1,46 +1,42 @@
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Input
+from tensorflow.keras.layers import Input, LSTM, Dense
 from tensorflow.keras.optimizers import Adam
 
-
 def build_ilstm(
-    input_shape,
+    batch_size,
+    sequence_length,
+    n_features,
     lstm_units=(150, 200, 50),
     learning_rate=0.001,
 ):
     model = Sequential()
 
-    # Explicit Input layer (cleaner)
-    model.add(Input(shape=input_shape))
+    # Define the input shape with batch_size explicitly here
+    model.add(Input(batch_shape=(batch_size, sequence_length, n_features)))
 
-    # First LSTM
-    model.add(
-        LSTM(
-            lstm_units[0],
-            activation="tanh",
-            return_sequences=True,
-        )
-    )
+    model.add(LSTM(
+        lstm_units[0],
+        activation="tanh",
+        return_sequences=True,
+        stateful=True
+    ))
 
-    # Middle LSTM layers
-    for units in lstm_units[1:-1]:
-        model.add(
-            LSTM(
-                units,
-                activation="tanh",
-                return_sequences=True,
-            )
-        )
+    # Layer 2
+    model.add(LSTM(
+        lstm_units[1],
+        activation="tanh",
+        return_sequences=True,
+        stateful=True
+    ))
 
-    # Final LSTM
-    model.add(
-        LSTM(
-            lstm_units[-1],
-            activation="tanh",
-            return_sequences=False,
-        )
-    )
+    # Layer 3
+    model.add(LSTM(
+        lstm_units[2],
+        activation="tanh",
+        return_sequences=False,
+        stateful=True
+    ))
 
     model.add(Dense(1, activation="sigmoid"))
 
@@ -48,13 +44,13 @@ def build_ilstm(
         learning_rate=learning_rate,
         beta_1=0.9,
         beta_2=0.999,
-        epsilon=1e-7,
+        epsilon=1e-7
     )
 
     model.compile(
         optimizer=optimizer,
         loss="binary_crossentropy",
-        metrics=["accuracy"],
+        metrics=["accuracy"]
     )
 
     return model

@@ -31,8 +31,10 @@ def main():
     # -------------------------
     n_features = X.shape[1]
     model = build_ilstm(
-        input_shape=(SEQUENCE_LENGTH, n_features)
-    )
+    batch_size=BATCH_SIZE,
+    sequence_length=SEQUENCE_LENGTH,
+    n_features=n_features
+)
 
     model.summary()
 

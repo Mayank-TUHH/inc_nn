@@ -1,49 +1,33 @@
 import numpy as np
 
-
-def build_sequences(X, y=None, sequence_length=48):
+def build_sequences(X, y, sequence_length, batch_size):
     """
-    Convert flat samples into sliding window sequences for LSTM.
-
+    Build sliding-window sequences for stateful LSTM.
+    
     Parameters
     ----------
     X : np.ndarray
-        Feature matrix of shape (n_samples, n_features)
-    y : np.ndarray or None
-        Labels of shape (n_samples,)
-        If None, only X sequences are returned (used during prediction)
+        Feature matrix (n_samples, n_features)
+    y : np.ndarray
+        Target vector (n_samples,)
     sequence_length : int
-        Number of time steps per sequence
-
-    Returns
-    -------
-    X_seq : np.ndarray
-        Shape (n_sequences, sequence_length, n_features)
-    y_seq : np.ndarray or None
-        Shape (n_sequences,)
+        Look-back window (e.g., 48 for one day)
+    batch_size : int
+        Fixed batch size for stateful logic (e.g., 336 for one week)
     """
+    X_seq = []
+    y_seq = []
 
-    n_samples = X.shape[0]
+    # Sliding window: moves 1 step at a time to cover the whole stream
+    for i in range(len(X) - sequence_length):
+        X_seq.append(X[i : i + sequence_length])
+        y_seq.append(y[i + sequence_length])
 
-    if n_samples < sequence_length:
-        raise ValueError(
-            f"Not enough samples ({n_samples}) for sequence length {sequence_length}"
-        )
+    X_seq = np.array(X_seq, dtype=np.float32)
+    y_seq = np.array(y_seq, dtype=np.int32)
 
-    X_sequences = []
-    y_sequences = []
-
-    for i in range(n_samples - sequence_length + 1):
-        X_sequences.append(X[i : i + sequence_length])
-
-        if y is not None:
-            # Label is the last time step in the sequence
-            y_sequences.append(y[i + sequence_length - 1])
-
-    X_seq = np.array(X_sequences, dtype=np.float32)
-
-    if y is not None:
-        y_seq = np.array(y_sequences, dtype=np.int32)
-        return X_seq, y_seq
-
-    return X_seq
+    # Truncate to the nearest multiple of batch_size for Keras stateful mode
+    n_batches = len(X_seq) // batch_size
+    n_limit = n_batches * batch_size
+    
+    return X_seq[:n_limit], y_seq[:n_limit]
