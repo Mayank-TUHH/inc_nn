@@ -3,6 +3,9 @@ import pandas as pd
 import torch
 import torch.nn as nn
 
+import torch
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def create_sub_batches(X, y, window_size=48):
     """
