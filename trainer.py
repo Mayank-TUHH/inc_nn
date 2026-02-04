@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+import torch.optim as optim
 
 import torch
 
@@ -64,7 +65,9 @@ def train_ilstm(
         prec_history (list[float]): Precision per batch
         rec_history  (list[float]): Recall per batch
     """
-
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    criterion = nn.BCELoss()
+    
     # Set model to training mode
     model.train()
 
