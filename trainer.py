@@ -47,5 +47,6 @@ def train_ilstm_electricity(
         preds = (torch.sigmoid(outputs) > 0.5).cpu().numpy()
         acc = accuracy(preds, y_seq.cpu().numpy())
         acc_history.append(acc)
+        print(f"Batch {batch_idx}, samples: {len(X_batch)}, acc: {acc:.4f}")
 
     return acc_history
