@@ -1,73 +1,40 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
 
 def load_electricity(csv_path):
-    """
-    Loads and preprocesses the Electricity dataset.
+    data = pd.read_csv(csv_path)
 
-    Steps performed:
-    1. Load CSV file from disk
-    2. Separate features and target label
-    3. Standardize feature values (zero mean, unit variance)
+    X = data.iloc[:, :-1].values
+    y = data.iloc[:, -1].values
 
-    Standardization is important for LSTM stability and
-    faster convergence during training.
-
-    Parameters:
-        csv_path (str): Absolute path to electricity.csv
-
-    Returns:
-        X (np.ndarray): Feature matrix of shape (N, F)
-        y (np.ndarray): Target labels of shape (N,)
-    """
-    # Load dataset
-    df = pd.read_csv(csv_path)
-
-    # Split features and target
-    # Assumption: last column is the target label
-    X = df.iloc[:, :-1].values
-    y = df.iloc[:, -1].values
-
-    # Normalize features for stable LSTM training
     scaler = StandardScaler()
     X = scaler.fit_transform(X)
 
     return X, y
 
-def electricity_stream(
-    X,
-    y,
-    init_batch_size=960,
-    batch_size=336
-):
-    """
-    Generator that simulates an online data stream for the Electricity dataset.
 
-    The stream follows the prequential evaluation setup used in the paper:
-    - One larger initial batch for pre-training
-    - Followed by fixed-size incremental batches
+def electricity_stream(X, y, init_batch_size=960, batch_size=336):
+    n_samples = X.shape[0]
+    start = 0
 
-    Parameters:
-        X (np.ndarray): Feature matrix of shape (N, F)
-        y (np.ndarray): Target labels of shape (N,)
-        init_batch_size (int): Size of the initial batch (default: 960)
-        batch_size (int): Size of subsequent incremental batches (default: 336)
+    # Initial batch
+    yield X[start:start + init_batch_size], y[start:start + init_batch_size]
+    start += init_batch_size
 
-    Yields:
-        (X_batch, y_batch): Tuples containing feature and label batches
-    """
-    n_samples = len(X)
-
-    # ---- Initial batch (used for pre-training) ----
-    yield X[:init_batch_size], y[:init_batch_size]
-
-    # ---- Incremental batches ----
-    start = init_batch_size
+    # Incremental batches
     while start < n_samples:
         end = min(start + batch_size, n_samples)
         yield X[start:end], y[start:end]
         start = end
 
 
+def create_sub_batches(X, y, window_size=48):
+    X_seq, y_seq = [], []
+
+    for i in range(len(X) - window_size + 1):
+        X_seq.append(X[i:i + window_size])
+        y_seq.append(y[i + window_size - 1])
+
+    return np.array(X_seq), np.array(y_seq)
