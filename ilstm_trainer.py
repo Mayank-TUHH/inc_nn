@@ -38,7 +38,9 @@ def run_incremental_training(
     # ------------------------------------------------------------
     # Reset state ONCE before the stream starts
     # ------------------------------------------------------------
-    model.reset_states()
+    for layer in model.layers:
+    if hasattr(layer, "reset_states"):
+        layer.reset_states()
 
     # ------------------------------------------------------------
     # PHASE 1: INITIAL BATCH (960 samples, NO evaluation)
