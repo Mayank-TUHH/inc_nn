@@ -63,7 +63,7 @@ def run_incremental_training(
         epochs=initial_epochs,
         shuffle=False,
         batch_size=1,
-        verbose=0,
+        verbose=1,
     )
 
     # ------------------------------------------------------------
