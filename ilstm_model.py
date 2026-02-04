@@ -1,19 +1,30 @@
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense
+from tensorflow.keras.layers import LSTM, Dense, Input
 from tensorflow.keras.optimizers import Adam
 
 
 def build_ilstm_model(batch_size, seq_length, n_features):
     """
-    Build a stateful ILSTM model as described in the paper.
+    Build a stateful ILSTM model (Keras 3 compatible).
+
+    IMPORTANT:
+    - batch_shape must be defined via an Input layer
     """
+
     model = Sequential()
+
+    # Keras 3: batch_shape must be specified here
+    model.add(
+        Input(
+            batch_shape=(batch_size, seq_length, n_features)
+        )
+    )
+
     model.add(
         LSTM(
             150,
             return_sequences=True,
             stateful=True,
-            batch_input_shape=(batch_size, seq_length, n_features),
         )
     )
     model.add(
